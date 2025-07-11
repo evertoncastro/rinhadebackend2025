@@ -27,19 +27,52 @@ poetry shell
 
 ## Execução
 
-### Desenvolvimento
+### Local - Desenvolvimento
 ```bash
 # Executar com uvicorn (desenvolvimento)
-poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8080
 
 # Ou executar o arquivo diretamente
 poetry run python main.py
+
+# Usando o Makefile
+make dev
 ```
 
-### Produção
+### Local - Produção
 ```bash
 # Executar com Gunicorn (produção)
 poetry run gunicorn main:app -c gunicorn.conf.py
+
+# Usando o Makefile
+make dev-gunicorn
+```
+
+### Docker - Orquestração das APIs
+```bash
+# Construir as imagens
+make build
+
+# Subir os containers (2 instâncias da API)
+make up
+
+# Verificar status
+make status
+
+# Ver logs
+make logs
+
+# Testar as APIs
+make test
+
+# Testar endpoints de pagamento
+make test-payments
+
+# Parar os containers
+make down
+
+# Limpeza completa
+make clean
 ```
 
 ## Endpoints
@@ -79,27 +112,36 @@ Health check da aplicação.
 }
 ```
 
-## Configuração com Nginx
+## Arquitetura Docker
 
-Para máxima performance em produção, configure o nginx como proxy reverso:
+### Configuração de Containers
 
-```nginx
-server {
-    listen 80;
-    server_name localhost;
+- **API 1**: Roda na porta 8003 (mapeada da porta interna 8080)
+- **API 2**: Roda na porta 8004 (mapeada da porta interna 8080)
+- **Rede**: rinha-network (isolada de outras redes)
 
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-    }
-}
-```
+### Portas Disponíveis
+
+- **Local**: http://localhost:8080
+- **API 1**: http://localhost:8003
+- **API 2**: http://localhost:8004
+
+### Configuração Simples
+
+**Dockerfile:**
+- **Imagem base**: Python 3.12 slim
+- **Poetry**: Gerenciamento de dependências com pyproject.toml
+- **Ambiente virtual**: Criado durante o build automaticamente
+- **Execução**: `poetry run` encontra o ambiente virtual correto
+- **Servidor**: Uvicorn (simples e eficiente)
+
+**Docker Compose:**
+- **Dois serviços**: api-1 e api-2
+- **Build simples**: Apenas context
+- **Port mapping**: 8003:8080 e 8004:8080
+- **Rede própria**: rinha-network (bridge)
+
+> 📝 **Nota**: Tanto o Dockerfile quanto o docker-compose.yml estão em suas versões mais simples para facilitar o aprendizado. Otimizações podem ser adicionadas gradualmente.
 
 ## Documentação
 
@@ -109,9 +151,10 @@ A documentação interativa está disponível em:
 
 ## Testes
 
+### Localmente (porta 8080)
 ```bash
 # Testar endpoint de pagamento
-curl -X POST "http://localhost:8000/payments" \
+curl -X POST "http://localhost:8080/payments" \
      -H "Content-Type: application/json" \
      -d '{
        "correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3",
@@ -119,7 +162,39 @@ curl -X POST "http://localhost:8000/payments" \
      }'
 
 # Testar health check
-curl http://localhost:8000/health
+curl http://localhost:8080/health
+```
+
+### Docker - Instâncias Específicas
+```bash
+# Testar API 1 (porta 8003)
+curl -X POST "http://localhost:8003/payments" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3",
+       "amount": 19.90
+     }'
+
+# Testar API 2 (porta 8004)
+curl -X POST "http://localhost:8004/payments" \
+     -H "Content-Type: application/json" \
+     -d '{
+       "correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3",
+       "amount": 19.90
+     }'
+
+# Health check das APIs
+curl http://localhost:8003/health
+curl http://localhost:8004/health
+```
+
+### Usando Make
+```bash
+# Testar todos os endpoints
+make test
+
+# Testar especificamente os endpoints de pagamento
+make test-payments
 ```
 
 ## Configurações de Performance
@@ -136,5 +211,9 @@ curl http://localhost:8000/health
 ├── main.py              # Aplicação FastAPI
 ├── gunicorn.conf.py     # Configuração do Gunicorn
 ├── pyproject.toml       # Dependências e configuração do Poetry
+├── Dockerfile           # Imagem Docker simples
+├── docker-compose.yml   # Orquestração de containers
+├── .dockerignore       # Arquivos ignorados no build Docker
+├── Makefile            # Comandos automatizados
 └── README.md           # Este arquivo
 ``` 
