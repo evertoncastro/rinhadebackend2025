@@ -116,15 +116,15 @@ Health check da aplicação.
 
 ### Configuração de Containers
 
-- **API 1**: Roda na porta 8003 (mapeada da porta interna 8080)
-- **API 2**: Roda na porta 8004 (mapeada da porta interna 8080)
-- **Rede**: rinha-network (isolada de outras redes)
+- **API 1**: Interna na rede (api-1:8080)
+- **API 2**: Interna na rede (api-2:8080)
+- **Nginx**: Load balancer na porta 9999 (única porta exposta)
+- **Rede**: rinha-network (comunicação interna)
 
 ### Portas Disponíveis
 
 - **Local**: http://localhost:8080
-- **API 1**: http://localhost:8003
-- **API 2**: http://localhost:8004
+- **🌐 Load Balancer**: http://localhost:9999 (ponto único de entrada)
 
 ### Configuração Simples
 
@@ -136,10 +136,17 @@ Health check da aplicação.
 - **Servidor**: Uvicorn (simples e eficiente)
 
 **Docker Compose:**
-- **Dois serviços**: api-1 e api-2
-- **Build simples**: Apenas context
-- **Port mapping**: 8003:8080 e 8004:8080
+- **Três serviços**: api-1, api-2 e nginx
+- **APIs internas**: Não expostas ao host (apenas na rede)
+- **Port mapping**: Apenas 9999:80 (nginx)
 - **Rede própria**: rinha-network (bridge)
+- **Comunicação interna**: nginx → api-1:8080 e api-2:8080
+
+**Nginx:**
+- **Configuração mínima**: Upstream simples para aprendizado
+- **Load balancing**: Distribuição entre api-1 e api-2
+- **Hostnames**: Usa nomes dos serviços Docker (api-1, api-2)
+- **Porta 9999**: Entrada única para as duas APIs
 
 > 📝 **Nota**: Tanto o Dockerfile quanto o docker-compose.yml estão em suas versões mais simples para facilitar o aprendizado. Otimizações podem ser adicionadas gradualmente.
 
@@ -165,27 +172,24 @@ curl -X POST "http://localhost:8080/payments" \
 curl http://localhost:8080/health
 ```
 
-### Docker - Instâncias Específicas
+### Docker - Via Load Balancer
 ```bash
-# Testar API 1 (porta 8003)
-curl -X POST "http://localhost:8003/payments" \
+# Testar via Load Balancer (nginx distribui automaticamente)
+curl -X POST "http://localhost:9999/payments" \
      -H "Content-Type: application/json" \
      -d '{
        "correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3",
        "amount": 19.90
      }'
 
-# Testar API 2 (porta 8004)
-curl -X POST "http://localhost:8004/payments" \
-     -H "Content-Type: application/json" \
-     -d '{
-       "correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3",
-       "amount": 19.90
-     }'
+# Health check via Load Balancer
+curl http://localhost:9999/health
 
-# Health check das APIs
-curl http://localhost:8003/health
-curl http://localhost:8004/health
+# Testar distribuição de carga (várias requisições)
+for i in {1..5}; do
+  echo "Requisição $i:"
+  curl -s http://localhost:9999/health | jq '.'
+done
 ```
 
 ### Usando Make
@@ -213,6 +217,7 @@ make test-payments
 ├── pyproject.toml       # Dependências e configuração do Poetry
 ├── Dockerfile           # Imagem Docker simples
 ├── docker-compose.yml   # Orquestração de containers
+├── nginx.conf          # Configuração do Nginx Load Balancer
 ├── .dockerignore       # Arquivos ignorados no build Docker
 ├── Makefile            # Comandos automatizados
 └── README.md           # Este arquivo

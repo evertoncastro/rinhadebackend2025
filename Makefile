@@ -38,7 +38,13 @@ logs-api2: ## Mostrar logs da API 2
 	@echo "📋 Logs da API 2:"
 	docker-compose -f $(COMPOSE_FILE) logs -f api-2
 
+logs-nginx: ## Mostrar logs do Nginx
+	@echo "📋 Logs do Nginx:"
+	docker-compose -f $(COMPOSE_FILE) logs -f nginx
 
+logs-apis: ## Mostrar logs das APIs (para debug interno)
+	@echo "📋 Logs das APIs (api-1 e api-2):"
+	docker-compose -f $(COMPOSE_FILE) logs -f api-1 api-2
 
 status: ## Mostrar status dos containers
 	@echo "📊 Status dos containers:"
@@ -50,25 +56,28 @@ clean: ## Limpar containers e imagens
 	docker system prune -f
 	docker volume prune -f
 
-test-api: ## Testar as APIs
-	@echo "🧪 Testando API 1 (porta 8003)..."
-	@curl -s http://localhost:8003/health | jq '.' || echo "❌ API 1 não está respondendo"
-	@echo ""
-	@echo "🧪 Testando API 2 (porta 8004)..."
-	@curl -s http://localhost:8004/health | jq '.' || echo "❌ API 2 não está respondendo"
+test: ## Testar a aplicação via Load Balancer
+	@echo "🧪 Testando Load Balancer (porta 9999)..."
+	@curl -s http://localhost:9999/health | jq '.' || echo "❌ Load Balancer não está respondendo"
 
-test-payments: ## Testar endpoints de pagamento
-	@echo "🧪 Testando POST /payments na API 1..."
-	@curl -X POST http://localhost:8003/payments \
-		-H "Content-Type: application/json" \
-		-d '{"correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3", "amount": 19.90}' \
-		| jq '.' || echo "❌ Teste falhou"
-	@echo ""
-	@echo "🧪 Testando POST /payments na API 2..."
-	@curl -X POST http://localhost:8004/payments \
-		-H "Content-Type: application/json" \
-		-d '{"correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3", "amount": 19.90}' \
-		| jq '.' || echo "❌ Teste falhou"
+test-payments: ## Testar endpoints de pagamento via Load Balancer
+	@echo "🧪 Testando POST /payments via Load Balancer (distribuindo entre API 1 e API 2)..."
+	@for i in 1 2 3; do \
+		echo "Requisição $$i:"; \
+		curl -X POST http://localhost:9999/payments \
+			-H "Content-Type: application/json" \
+			-d '{"correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3", "amount": 19.90}' \
+			| jq '.'; \
+		echo ""; \
+	done
+
+test-load-balancing: ## Demonstrar distribuição de carga com várias requisições
+	@echo "🔄 Testando distribuição de carga (nginx round-robin)..."
+	@for i in 1 2 3 4 5; do \
+		echo "Requisição $$i:"; \
+		curl -s http://localhost:9999/health | jq '.'; \
+		sleep 0.5; \
+	done
 
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."

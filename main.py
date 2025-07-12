@@ -27,7 +27,6 @@ async def create_payment(payment: PaymentRequest):
             detail="correlationId deve ser um UUID válido"
         )
     
-    
     return {
         "status": "success",
         "message": "Pagamento processado com sucesso",
