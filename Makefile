@@ -62,12 +62,14 @@ test: ## Testar a aplicação via Load Balancer
 
 test-payments: ## Testar endpoints de pagamento via Load Balancer
 	@echo "🧪 Testando POST /payments via Load Balancer (distribuindo entre API 1 e API 2)..."
+	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
 	@for i in 1 2 3; do \
 		echo "Requisição $$i:"; \
 		curl -X POST http://localhost:9999/payments \
 			-H "Content-Type: application/json" \
 			-d '{"correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3", "amount": 19.90}' \
-			| jq '.'; \
+			-w "\nStatus: %{http_code}\n" \
+			-s; \
 		echo ""; \
 	done
 
@@ -85,4 +87,8 @@ dev: ## Executar aplicação local em modo desenvolvimento
 
 dev-gunicorn: ## Executar aplicação local com Gunicorn
 	@echo "🚀 Executando aplicação local com Gunicorn na porta 8080..."
-	poetry run gunicorn main:app -c gunicorn.conf.py 
+	poetry run gunicorn main:app -c gunicorn.conf.py
+
+dev-docker: ## Executar aplicação Docker com hot reload
+	@echo "🚀 Executando aplicação Docker com hot reload..."
+	docker-compose -f $(COMPOSE_FILE) up --build 

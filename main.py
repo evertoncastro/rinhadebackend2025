@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from pydantic import BaseModel, Field
 from typing import Annotated
 import uuid
@@ -17,7 +17,7 @@ class PaymentRequest(BaseModel):
         validate_assignment = True
         str_strip_whitespace = True
 
-@app.post("/payments", status_code=200)
+@app.post("/payments", status_code=204)
 async def create_payment(payment: PaymentRequest):
     try:
         uuid.UUID(payment.correlationId)
@@ -27,12 +27,7 @@ async def create_payment(payment: PaymentRequest):
             detail="correlationId deve ser um UUID válido"
         )
     
-    return {
-        "status": "success",
-        "message": "Pagamento processado com sucesso",
-        "correlationId": payment.correlationId,
-        "amount": payment.amount
-    }
+    return Response(status_code=204)
 
 @app.get("/health")
 async def health_check():
