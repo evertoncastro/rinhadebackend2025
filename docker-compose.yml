@@ -4,14 +4,14 @@ services:
   api-1:
     build: .
     volumes:
-      - ./main.py:/app/main.py:ro
+      - ./app:/app/app:ro
     networks:
       - rinha-network
 
   api-2:
     build: .
     volumes:
-      - ./main.py:/app/main.py:ro
+      - ./app:/app/app:ro
     networks:
       - rinha-network
 

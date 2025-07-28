@@ -21,10 +21,10 @@ COPY pyproject.toml ./
 RUN poetry install --only=main
 
 # Copiar código da aplicação
-COPY main.py ./
+COPY app/ ./app/
 
 # Expor porta da aplicação
 EXPOSE 8080
 
 # Comando para iniciar a aplicação (poetry run encontra o ambiente virtual)
-CMD ["poetry", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"] 
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"] 

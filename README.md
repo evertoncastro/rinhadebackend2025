@@ -30,10 +30,10 @@ poetry shell
 ### Local - Desenvolvimento
 ```bash
 # Executar com uvicorn (desenvolvimento)
-poetry run uvicorn main:app --reload --host 0.0.0.0 --port 8080
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 # Ou executar o arquivo diretamente
-poetry run python main.py
+poetry run python app/main.py
 
 # Usando o Makefile
 make dev
@@ -42,7 +42,7 @@ make dev
 ### Local - Produção
 ```bash
 # Executar com Gunicorn (produção)
-poetry run gunicorn main:app -c gunicorn.conf.py
+poetry run gunicorn app.main:app -c app/gunicorn.conf.py
 
 # Usando o Makefile
 make dev-gunicorn
@@ -212,8 +212,9 @@ make test-payments
 
 ```
 .
-├── main.py              # Aplicação FastAPI
-├── gunicorn.conf.py     # Configuração do Gunicorn
+├── app/                 # Código da aplicação
+│   ├── main.py         # Aplicação FastAPI
+│   └── gunicorn.conf.py # Configuração do Gunicorn
 ├── pyproject.toml       # Dependências e configuração do Poetry
 ├── Dockerfile           # Imagem Docker simples
 ├── docker-compose.yml   # Orquestração de containers

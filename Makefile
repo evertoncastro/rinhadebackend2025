@@ -83,11 +83,11 @@ test-load-balancing: ## Demonstrar distribuição de carga com várias requisiç
 
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."
-	poetry run python main.py
+	poetry run python app/main.py
 
 dev-gunicorn: ## Executar aplicação local com Gunicorn
 	@echo "🚀 Executando aplicação local com Gunicorn na porta 8080..."
-	poetry run gunicorn main:app -c gunicorn.conf.py
+	poetry run gunicorn app.main:app -c app/gunicorn.conf.py
 
 dev-docker: ## Executar aplicação Docker com hot reload
 	@echo "🚀 Executando aplicação Docker com hot reload..."
