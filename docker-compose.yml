@@ -3,17 +3,25 @@ version: '3.8'
 services:
   api-1:
     build: .
+    environment:
+      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
     volumes:
       - ./app:/app/app:ro
     networks:
       - rinha-network
+      - payment-processor
 
   api-2:
     build: .
+    environment:
+      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
     volumes:
       - ./app:/app/app:ro
     networks:
       - rinha-network
+      - payment-processor
 
   nginx:
     image: nginx:alpine
@@ -31,3 +39,6 @@ networks:
   rinha-network:
     name: rinha-network
     driver: bridge
+  payment-processor:
+    name: payment-processor
+    external: true

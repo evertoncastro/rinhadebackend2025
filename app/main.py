@@ -1,21 +1,13 @@
 from fastapi import FastAPI, HTTPException, Response
-from pydantic import BaseModel, Field
-from typing import Annotated
 import uuid
+from .models import PaymentRequest
+from .services import payment_service
 
 app = FastAPI(
     title="Rinha de Backend 2025",
     description="API de pagamentos com alta performance",
     version="1.0.0"
 )
-
-class PaymentRequest(BaseModel):
-    correlationId: Annotated[str, Field(min_length=1, max_length=100, description="ID de correlação único")]
-    amount: Annotated[float, Field(gt=0, description="Valor do pagamento em reais")]
-
-    class Config:
-        validate_assignment = True
-        str_strip_whitespace = True
 
 @app.post("/payments", status_code=204)
 async def create_payment(payment: PaymentRequest):
@@ -26,6 +18,9 @@ async def create_payment(payment: PaymentRequest):
             status_code=400, 
             detail="correlationId deve ser um UUID válido"
         )
+    
+    # Process payment through external processor
+    await payment_service.process_payment(payment)
     
     return Response(status_code=204)
 

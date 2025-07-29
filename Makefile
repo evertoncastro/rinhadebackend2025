@@ -63,12 +63,12 @@ test: ## Testar a aplicação via Load Balancer
 test-payments: ## Testar endpoints de pagamento via Load Balancer
 	@echo "🧪 Testando POST /payments via Load Balancer (distribuindo entre API 1 e API 2)..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
-	@for i in 1 2 3; do \
+	@for i in 1; do \
 		echo "Requisição $$i:"; \
 		curl -X POST http://localhost:9999/payments \
 			-H "Content-Type: application/json" \
-			-d '{"correlationId": "4a7901b8-7d26-4d9d-aa19-4dc1c7cf60b3", "amount": 19.90}' \
-			-w "\nStatus: %{http_code}\n" \
+			-d '{"correlationId": "'$$(uuidgen)'", "amount": 10.00}' \
+			-w "Status: %{http_code}\n" \
 			-s; \
 		echo ""; \
 	done
