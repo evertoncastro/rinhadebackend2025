@@ -34,7 +34,7 @@ class PaymentService:
                 )
             raise HTTPException(
                 status_code=503,
-                detail=f"Payment processors error: {e.__class__.__name__}"
+                detail=f"Payment processors error: {e}"
             )
 
 payment_service = PaymentService()

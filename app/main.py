@@ -3,11 +3,13 @@ import uuid
 from .models import PaymentRequest
 from .services import payment_service
 
+
 app = FastAPI(
     title="Rinha de Backend 2025",
     description="API de pagamentos com alta performance",
     version="1.0.0"
 )
+
 
 @app.post("/payments", status_code=204)
 async def create_payment(payment: PaymentRequest):
@@ -18,15 +20,14 @@ async def create_payment(payment: PaymentRequest):
             status_code=400, 
             detail="correlationId deve ser um UUID válido"
         )
-    
-    # Process payment through external processor
     await payment_service.process_payment(payment)
-    
     return Response(status_code=204)
+
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 if __name__ == "__main__":
     import uvicorn

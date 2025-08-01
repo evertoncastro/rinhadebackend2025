@@ -56,11 +56,11 @@ clean: ## Limpar containers e imagens
 	docker system prune -f
 	docker volume prune -f
 
-test: ## Testar a aplicação via Load Balancer
+health-check: ## Testar a aplicação via Load Balancer
 	@echo "🧪 Testando Load Balancer (porta 9999)..."
 	@curl -s http://localhost:9999/health | jq '.' || echo "❌ Load Balancer não está respondendo"
 
-test-payments: ## Testar endpoints de pagamento via Load Balancer
+payment-test: ## Testar endpoints de pagamento via Load Balancer
 	@echo "🧪 Testando POST /payments via Load Balancer (distribuindo entre API 1 e API 2)..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
 	@for i in 1; do \
@@ -73,21 +73,9 @@ test-payments: ## Testar endpoints de pagamento via Load Balancer
 		echo ""; \
 	done
 
-test-load-balancing: ## Demonstrar distribuição de carga com várias requisições
-	@echo "🔄 Testando distribuição de carga (nginx round-robin)..."
-	@for i in 1 2 3 4 5; do \
-		echo "Requisição $$i:"; \
-		curl -s http://localhost:9999/health | jq '.'; \
-		sleep 0.5; \
-	done
-
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."
 	poetry run python app/main.py
-
-dev-gunicorn: ## Executar aplicação local com Gunicorn
-	@echo "🚀 Executando aplicação local com Gunicorn na porta 8080..."
-	poetry run gunicorn app.main:app -c app/gunicorn.conf.py
 
 dev-docker: ## Executar aplicação Docker com hot reload
 	@echo "🚀 Executando aplicação Docker com hot reload..."
