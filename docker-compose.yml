@@ -1,13 +1,35 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: payments_db
+      POSTGRES_USER: payments_user
+      POSTGRES_PASSWORD: payments_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - rinha-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U payments_user -d payments_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api-1:
     build: .
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+      - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
     volumes:
       - ./app:/app/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - rinha-network
       - payment-processor
@@ -17,8 +39,12 @@ services:
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+      - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
     volumes:
       - ./app:/app/app:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - rinha-network
       - payment-processor
@@ -42,3 +68,6 @@ networks:
   payment-processor:
     name: payment-processor
     external: true
+
+volumes:
+  postgres_data:

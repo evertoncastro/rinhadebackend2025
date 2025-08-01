@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from .models import PaymentRequest, PaymentProcessorRequest
+from .db import save_payment
 
 class PaymentService:
     def __init__(self):
@@ -10,10 +11,11 @@ class PaymentService:
         self.timeout = 10.0
 
     async def process_payment(self, payment: PaymentRequest):
+        requested_at = datetime.now(timezone.utc)
         processor_request = PaymentProcessorRequest(
             correlationId=payment.correlationId,
             amount=payment.amount,
-            requestedAt=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+            requestedAt=requested_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         )
         
         try:
@@ -25,6 +27,13 @@ class PaymentService:
                 )
                 response.raise_for_status()
                 print(f"Payment processor successful response: {response.json()}")
+                internal_id = await save_payment(
+                    payment.correlationId, 
+                    payment.amount, 
+                    requested_at,
+                    "default"
+                )
+                print(f"Payment saved: {internal_id}")
                 return response
         except httpx.HTTPStatusError as e:
             if 400 <= e.response.status_code <= 499:

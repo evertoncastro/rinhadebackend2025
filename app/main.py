@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Response
 import uuid
 from .models import PaymentRequest
 from .services import payment_service
+from .db import init_db, close_pool
 
 
 app = FastAPI(
@@ -10,6 +11,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    await init_db()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connections on shutdown."""
+    await close_pool()
+
 
 @app.post("/payments", status_code=204)
 async def create_payment(payment: PaymentRequest):
@@ -17,7 +28,7 @@ async def create_payment(payment: PaymentRequest):
         uuid.UUID(payment.correlationId)
     except ValueError:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail="correlationId deve ser um UUID válido"
         )
     await payment_service.process_payment(payment)
