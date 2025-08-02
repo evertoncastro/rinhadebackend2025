@@ -60,14 +60,19 @@ health-check: ## Testar a aplicação via Load Balancer
 	@echo "🧪 Testando Load Balancer (porta 9999)..."
 	@curl -s http://localhost:9999/health | jq '.' || echo "❌ Load Balancer não está respondendo"
 
-payment-test: ## Testar endpoints de pagamento via Load Balancer
+payment-test: ## Testar endpoints de pagamento via Load Balancer (uso: make payment-test AMOUNT=10.25)
+	@if [ -z "$(AMOUNT)" ]; then \
+		echo "❌ Erro: AMOUNT é obrigatório. Use: make payment-test AMOUNT=10.25"; \
+		exit 1; \
+	fi
 	@echo "🧪 Testando POST /payments via Load Balancer (distribuindo entre API 1 e API 2)..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
+	@echo "💰 Valor do pagamento: $(AMOUNT)"
 	@for i in 1; do \
 		echo "Requisição $$i:"; \
 		curl -X POST http://localhost:9999/payments \
 			-H "Content-Type: application/json" \
-			-d '{"correlationId": "'$$(uuidgen)'", "amount": 10.25}' \
+			-d '{"correlationId": "'$$(uuidgen)'", "amount": $(AMOUNT)}' \
 			-w "Status: %{http_code}\n" \
 			-s; \
 		echo ""; \
@@ -102,6 +107,30 @@ admin-purge-payments: ## Testar endpoint de purge nos processadores externos
 	@echo "📊 Testando processador de fallback (porta 8002):"
 	@curl -X POST http://localhost:8002/purge-payments \
 		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
+
+admin-set-default-delay: ## Configurar delay no processador padrão (uso: make admin-set-default-delay DELAY=1000)
+	@if [ -z "$(DELAY)" ]; then \
+		echo "❌ Erro: DELAY é obrigatório. Use: make admin-set-default-delay DELAY=1000"; \
+		exit 1; \
+	fi
+	@echo "⚙️  Configurando delay de $(DELAY)ms no processador padrão (porta 8001)..."
+	@curl -X PUT http://localhost:8001/admin/configurations/delay \
+		-H "Content-Type: application/json" \
+		-H "X-Rinha-Token: 123" \
+		-d '{"delay": $(DELAY)}' \
+		-w "Status: %{http_code}\n" -s
+
+admin-set-fallback-delay: ## Configurar delay no processador de fallback (uso: make admin-set-fallback-delay DELAY=1000)
+	@if [ -z "$(DELAY)" ]; then \
+		echo "❌ Erro: DELAY é obrigatório. Use: make admin-set-fallback-delay DELAY=1000"; \
+		exit 1; \
+	fi
+	@echo "⚙️  Configurando delay de $(DELAY)ms no processador de fallback (porta 8002)..."
+	@curl -X PUT http://localhost:8002/admin/configurations/delay \
+		-H "Content-Type: application/json" \
+		-H "X-Rinha-Token: 123" \
+		-d '{"delay": $(DELAY)}' \
+		-w "Status: %{http_code}\n" -s
 
 
 summary-all-test: summary-test admin-summary-test ## Executar todos os testes de summary

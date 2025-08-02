@@ -18,7 +18,7 @@ class ProcessorAPIClient:
     def __init__(self, processor: Processor = Processor.DEFAULT):
         self.url = DEFAULT_URL if processor == Processor.DEFAULT else FALLBACK_URL
         self.processor = processor
-        self.timeout = 5.0
+        self.timeout = 2.0
 
     async def process_payment(self, processor_request: PaymentProcessorRequest) -> bool:
         try:
@@ -27,11 +27,14 @@ class ProcessorAPIClient:
                     f"{self.url}/payments",
                     json=processor_request.model_dump(),
                     headers={"Content-Type": "application/json"},
-                    timeout=httpx.Timeout(self.timeout, connect=10.0)
+                    timeout=httpx.Timeout(self.timeout)
                 )
                 response.raise_for_status()
                 print(f"Payment processor ({self.processor}) successful response: {response.json()}")
-                return True   
+                return True
+        except httpx.TimeoutException:
+            print(f"Payment processor ({self.processor}) timeout")
+            raise
         except httpx.HTTPStatusError as e:
             if 400 <= e.response.status_code <= 499:
                 raise HTTPException(
