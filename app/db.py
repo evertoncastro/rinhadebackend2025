@@ -33,7 +33,7 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS payments (
                 id SERIAL PRIMARY KEY,
                 correlation_id VARCHAR(100) NOT NULL,
-                amount DECIMAL(10,2) NOT NULL,
+                amount DECIMAL NOT NULL,
                 requested_at TIMESTAMP NOT NULL,
                 processor VARCHAR(10) NOT NULL DEFAULT 'default'
             )
@@ -50,7 +50,7 @@ async def init_db():
         ''')
         
 
-async def save_payment(correlation_id: str, amount: float, requested_at: datetime, processor: str = "default") -> Optional[int]:
+async def save_payment(correlation_id: str, amount: Decimal, requested_at: datetime, processor: str = "default") -> Optional[int]:
     try:
         async with get_connection() as conn:
             if requested_at.tzinfo is None:
@@ -104,9 +104,6 @@ async def get_payments_by_processor(processor: str) -> List[Dict[str, Any]]:
         return [dict(row) for row in rows]
 
 async def get_payments_summary(from_datetime: Optional[datetime] = None, to_datetime: Optional[datetime] = None) -> Dict[str, Dict[str, Any]]:
-    """
-    Get payment summary by processor within optional date range.
-    """
     async with get_connection() as conn:
         all_processors = ["default", "fallback"]
         
@@ -146,10 +143,11 @@ async def get_payments_summary(from_datetime: Optional[datetime] = None, to_date
         for row in rows:
             result[row['processor']] = {
                 "totalRequests": row['total_requests'],
-                "totalAmount": Decimal(str(row['total_amount'])).quantize(Decimal('0.01')) if row['total_amount'] else Decimal('0.00')
+                "totalAmount": row['total_amount'] if row['total_amount'] else Decimal('0.00')
             }
             
         return result
+
 
 async def close_pool():
     global _pool
@@ -157,14 +155,9 @@ async def close_pool():
         await _pool.close()
         _pool = None
 
+
 async def purge_payments() -> int:
-    """
-    Delete all records from the payments table.
-    Returns the number of deleted records.
-    """
     async with get_connection() as conn:
         result = await conn.execute('DELETE FROM payments')
-        # Extract the number of affected rows from the result
-        # The result format is typically "DELETE count"
         deleted_count = int(result.split()[-1]) if result else 0
         return deleted_count 

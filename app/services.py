@@ -11,7 +11,7 @@ class PaymentService:
         requested_at = datetime.now(timezone.utc)
         processor_request = PaymentProcessorRequest(
             correlationId=payment.correlationId,
-            amount=payment.amount,
+            amount=str(payment.amount),
             requestedAt=requested_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         )
         try:

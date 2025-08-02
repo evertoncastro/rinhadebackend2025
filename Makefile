@@ -101,11 +101,11 @@ admin-purge-payments: ## Testar endpoint de purge nos processadores externos
 	@echo "🧪 Testando POST /purge-payments nos processadores externos..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
 	@echo "📊 Testando processador padrão (porta 8001):"
-	@curl -X POST http://localhost:8001/purge-payments \
+	@curl -X POST http://localhost:8001/admin/purge-payments \
 		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
 	@echo ""
 	@echo "📊 Testando processador de fallback (porta 8002):"
-	@curl -X POST http://localhost:8002/purge-payments \
+	@curl -X POST http://localhost:8002/admin/purge-payments \
 		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
 
 admin-set-default-delay: ## Configurar delay no processador padrão (uso: make admin-set-default-delay DELAY=1000)
