@@ -3,6 +3,7 @@ import asyncpg
 from typing import Optional, List, Dict, Any
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from decimal import Decimal
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://payments_user:payments_password@localhost:5432/payments_db")
 
@@ -38,7 +39,6 @@ async def init_db():
             )
         ''')
         
-        # Create indexes
         await conn.execute('''
             CREATE INDEX IF NOT EXISTS idx_payments_correlation_id 
             ON payments (correlation_id)
@@ -102,6 +102,54 @@ async def get_payments_by_processor(processor: str) -> List[Dict[str, Any]]:
         ''', processor)
         
         return [dict(row) for row in rows]
+
+async def get_payments_summary(from_datetime: Optional[datetime] = None, to_datetime: Optional[datetime] = None) -> Dict[str, Dict[str, Any]]:
+    """
+    Get payment summary by processor within optional date range.
+    """
+    async with get_connection() as conn:
+        all_processors = ["default", "fallback"]
+        
+        query = '''
+            SELECT 
+                processor,
+                COUNT(*) as total_requests,
+                SUM(amount) as total_amount
+            FROM payments
+        '''
+        
+        params = []
+        conditions = []
+        
+        if from_datetime:
+            conditions.append("requested_at >= $1")
+            params.append(from_datetime)
+            
+        if to_datetime:
+            conditions.append("requested_at <= $2")
+            params.append(to_datetime)
+            
+        if conditions:
+            query += " WHERE " + " AND ".join(conditions)
+            
+        query += " GROUP BY processor ORDER BY processor"
+        
+        rows = await conn.fetch(query, *params)
+        
+        result = {}
+        for processor in all_processors:
+            result[processor] = {
+                "totalRequests": 0,
+                "totalAmount": Decimal('0.00')
+            }
+        
+        for row in rows:
+            result[row['processor']] = {
+                "totalRequests": row['total_requests'],
+                "totalAmount": Decimal(str(row['total_amount'])).quantize(Decimal('0.01')) if row['total_amount'] else Decimal('0.00')
+            }
+            
+        return result
 
 async def close_pool():
     global _pool

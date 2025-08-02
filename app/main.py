@@ -1,8 +1,10 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Query
+from typing import Optional
 import uuid
+from datetime import datetime, timezone
 from .models import PaymentRequest
 from .services import payment_service
-from .db import init_db, close_pool
+from .db import init_db, close_pool, get_payments_summary
 
 
 app = FastAPI(
@@ -38,6 +40,45 @@ async def create_payment(payment: PaymentRequest):
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/payments-summary")
+async def get_payments_summary_endpoint(
+    from_datetime: Optional[str] = Query(None, description="Start datetime in ISO format (UTC)"),
+    to_datetime: Optional[str] = Query(None, description="End datetime in ISO format (UTC)")
+):
+    try:
+        from_dt = None
+        to_dt = None
+        
+        if from_datetime:
+            try:
+                from_dt = datetime.fromisoformat(from_datetime.replace('Z', '+00:00'))
+                from_dt = from_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid from_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
+                )
+        
+        if to_datetime:
+            try:
+                to_dt = datetime.fromisoformat(to_datetime.replace('Z', '+00:00'))
+                to_dt = to_dt.astimezone(timezone.utc).replace(tzinfo=None)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid to_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
+                )
+        
+        summary = await get_payments_summary(from_dt, to_dt)
+        return summary
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving payment summary: {str(e)}"
+        )
 
 
 if __name__ == "__main__":

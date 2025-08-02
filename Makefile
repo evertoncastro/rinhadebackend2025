@@ -67,11 +67,15 @@ payment-test: ## Testar endpoints de pagamento via Load Balancer
 		echo "Requisição $$i:"; \
 		curl -X POST http://localhost:9999/payments \
 			-H "Content-Type: application/json" \
-			-d '{"correlationId": "'$$(uuidgen)'", "amount": 10.00}' \
+			-d '{"correlationId": "'$$(uuidgen)'", "amount": 10.25}' \
 			-w "Status: %{http_code}\n" \
 			-s; \
 		echo ""; \
 	done
+
+summary-test:
+	@echo "🧪 Testando GET /payments-summary via Load Balancer..."
+	@curl -s "http://localhost:9999/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.999Z" | jq '.' || echo "❌ Erro na consulta"
 
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."
