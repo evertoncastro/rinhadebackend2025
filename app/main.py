@@ -47,33 +47,28 @@ async def get_payments_summary_endpoint(
     from_datetime: Optional[str] = Query(None, description="Start datetime in ISO format (UTC)"),
     to_datetime: Optional[str] = Query(None, description="End datetime in ISO format (UTC)")
 ):
+    from_dt, to_dt = None, None
+    if from_datetime:
+        try:
+            from_dt = datetime.fromisoformat(from_datetime.replace('Z', '+00:00'))
+            from_dt = from_dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid from_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
+            )
+    
+    if to_datetime:
+        try:
+            to_dt = datetime.fromisoformat(to_datetime.replace('Z', '+00:00'))
+            to_dt = to_dt.astimezone(timezone.utc).replace(tzinfo=None)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid to_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
+            )
     try:
-        from_dt = None
-        to_dt = None
-        
-        if from_datetime:
-            try:
-                from_dt = datetime.fromisoformat(from_datetime.replace('Z', '+00:00'))
-                from_dt = from_dt.astimezone(timezone.utc).replace(tzinfo=None)
-            except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid from_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
-                )
-        
-        if to_datetime:
-            try:
-                to_dt = datetime.fromisoformat(to_datetime.replace('Z', '+00:00'))
-                to_dt = to_dt.astimezone(timezone.utc).replace(tzinfo=None)
-            except ValueError:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid to_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
-                )
-        
-        summary = await get_payments_summary(from_dt, to_dt)
-        return summary
-        
+        return await get_payments_summary(from_dt, to_dt)
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -82,24 +77,10 @@ async def get_payments_summary_endpoint(
 
 
 @app.post("/purge-payments", status_code=204)
-async def purge_payments_endpoint(x_rinha_token: Optional[str] = Header(None)):
-    """
-    Admin endpoint to purge all payments from the database.
-    Requires X-Rinha-Token header for authentication.
-    """
-    # Simple authentication check
-    if x_rinha_token != "123":
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized. Valid X-Rinha-Token header required."
-        )
-    
+async def purge_payments_endpoint():
     try:
         deleted_count = await purge_payments()
-        return Response(
-            status_code=204,
-            headers={"X-Deleted-Count": str(deleted_count)}
-        )
+        return {"deleted_count": deleted_count}
     except Exception as e:
         raise HTTPException(
             status_code=500,

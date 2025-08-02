@@ -86,19 +86,22 @@ admin-summary-test: ## Testar endpoint /admin/payments-summary nos processadores
 	@echo "📊 Testando processador de fallback"
 	@curl -s "http://localhost:8002/admin/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.000Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador de fallback não está respondendo"
 
-purge-payments:
+purge-payments: ## Testar endpoint de purge via Load Balancer
 	@echo "🧪 Testando POST /purge-payments via Load Balancer..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
 	@curl -X POST http://localhost:9999/purge-payments \
-		-H "X-Rinha-Token: 123"
+		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
 
-admin-purge-payments:
-	@echo "🧪 Testando POST /admin/purge-payments via Load Balancer..."
+admin-purge-payments: ## Testar endpoint de purge nos processadores externos
+	@echo "🧪 Testando POST /purge-payments nos processadores externos..."
 	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
-	@curl -X POST http://localhost:8001/admin/purge-payments \
-		-H "X-Rinha-Token: 123"
-	@curl -X POST http://localhost:8002/admin/purge-payments \
-		-H "X-Rinha-Token: 123"
+	@echo "📊 Testando processador padrão (porta 8001):"
+	@curl -X POST http://localhost:8001/purge-payments \
+		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
+	@echo ""
+	@echo "📊 Testando processador de fallback (porta 8002):"
+	@curl -X POST http://localhost:8002/purge-payments \
+		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
 
 
 summary-all-test: summary-test admin-summary-test ## Executar todos os testes de summary
