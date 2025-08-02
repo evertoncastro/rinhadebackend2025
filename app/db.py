@@ -155,4 +155,16 @@ async def close_pool():
     global _pool
     if _pool:
         await _pool.close()
-        _pool = None 
+        _pool = None
+
+async def purge_payments() -> int:
+    """
+    Delete all records from the payments table.
+    Returns the number of deleted records.
+    """
+    async with get_connection() as conn:
+        result = await conn.execute('DELETE FROM payments')
+        # Extract the number of affected rows from the result
+        # The result format is typically "DELETE count"
+        deleted_count = int(result.split()[-1]) if result else 0
+        return deleted_count 

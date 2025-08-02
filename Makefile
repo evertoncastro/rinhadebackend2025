@@ -73,13 +73,42 @@ payment-test: ## Testar endpoints de pagamento via Load Balancer
 		echo ""; \
 	done
 
+
 summary-test:
-	@echo "🧪 Testando GET /payments-summary via Load Balancer..."
+	@echo "📊 Testando GET /payments-summary via Load Balancer..."
 	@curl -s "http://localhost:9999/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.999Z" | jq '.' || echo "❌ Erro na consulta"
+
+
+admin-summary-test: ## Testar endpoint /admin/payments-summary nos processadores externos
+	@echo "📊 Testando processador padrão"
+	@curl -s "http://localhost:8001/admin/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.000Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador padrão não está respondendo"
+	@echo ""
+	@echo "📊 Testando processador de fallback"
+	@curl -s "http://localhost:8002/admin/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.000Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador de fallback não está respondendo"
+
+purge-payments:
+	@echo "🧪 Testando POST /purge-payments via Load Balancer..."
+	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
+	@curl -X POST http://localhost:9999/purge-payments \
+		-H "X-Rinha-Token: 123"
+
+admin-purge-payments:
+	@echo "🧪 Testando POST /admin/purge-payments via Load Balancer..."
+	@echo "📝 Esperado: HTTP 204 No Content (sem corpo de resposta)"
+	@curl -X POST http://localhost:8001/admin/purge-payments \
+		-H "X-Rinha-Token: 123"
+	@curl -X POST http://localhost:8002/admin/purge-payments \
+		-H "X-Rinha-Token: 123"
+
+
+summary-all-test: summary-test admin-summary-test ## Executar todos os testes de summary
+	@echo "✅ Todos os testes de summary foram executados"
+
 
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."
 	poetry run python app/main.py
+
 
 dev-docker: ## Executar aplicação Docker com hot reload
 	@echo "🚀 Executando aplicação Docker com hot reload..."

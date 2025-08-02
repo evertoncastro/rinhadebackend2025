@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException, Response, Query
+from fastapi import FastAPI, HTTPException, Response, Query, Header
 from typing import Optional
 import uuid
 from datetime import datetime, timezone
 from .models import PaymentRequest
 from .services import payment_service
-from .db import init_db, close_pool, get_payments_summary
+from .db import init_db, close_pool, get_payments_summary, purge_payments
 
 
 app = FastAPI(
@@ -78,6 +78,32 @@ async def get_payments_summary_endpoint(
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving payment summary: {str(e)}"
+        )
+
+
+@app.post("/purge-payments", status_code=204)
+async def purge_payments_endpoint(x_rinha_token: Optional[str] = Header(None)):
+    """
+    Admin endpoint to purge all payments from the database.
+    Requires X-Rinha-Token header for authentication.
+    """
+    # Simple authentication check
+    if x_rinha_token != "123":
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized. Valid X-Rinha-Token header required."
+        )
+    
+    try:
+        deleted_count = await purge_payments()
+        return Response(
+            status_code=204,
+            headers={"X-Deleted-Count": str(deleted_count)}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error purging payments: {str(e)}"
         )
 
 
