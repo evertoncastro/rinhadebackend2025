@@ -18,7 +18,7 @@ class ProcessorAPIClient:
     def __init__(self, processor: Processor = Processor.DEFAULT):
         self.url = DEFAULT_URL if processor == Processor.DEFAULT else FALLBACK_URL
         self.processor = processor
-        self.timeout = 2.0
+        self.timeout = None
 
     async def process_payment(self, processor_request: PaymentProcessorRequest) -> bool:
         try:
@@ -42,12 +42,12 @@ class ProcessorAPIClient:
                     detail=f"Payment processor ({self.processor}) error: {e.response.json().get('message', str(e))}"
                 )
             raise HTTPException(
-                status_code=503,
+                status_code=500,
                 detail=f"Payment processor ({self.processor}) error: {e}"
             )
         except httpx.RequestError as e:
             raise HTTPException(
-                status_code=503,
+                status_code=500,
                 detail=f"Payment processor ({self.processor}) connection error: {e}"
             )
 

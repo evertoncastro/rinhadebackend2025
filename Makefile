@@ -132,6 +132,38 @@ admin-set-fallback-delay: ## Configurar delay no processador de fallback (uso: m
 		-d '{"delay": $(DELAY)}' \
 		-w "Status: %{http_code}\n" -s
 
+admin-set-default-failure: ## Configurar failure no processador padrão (uso: make admin-set-default-failure FAILURE=true)
+	@if [ -z "$(FAILURE)" ]; then \
+		echo "❌ Erro: FAILURE é obrigatório. Use: make admin-set-default-failure FAILURE=true ou FAILURE=false"; \
+		exit 1; \
+	fi
+	@if [ "$(FAILURE)" != "true" ] && [ "$(FAILURE)" != "false" ]; then \
+		echo "❌ Erro: FAILURE deve ser 'true' ou 'false'. Use: make admin-set-default-failure FAILURE=true ou FAILURE=false"; \
+		exit 1; \
+	fi
+	@echo "⚙️  Configurando failure=$(FAILURE) no processador padrão (porta 8001)..."
+	@curl -X PUT http://localhost:8001/admin/configurations/failure \
+		-H "Content-Type: application/json" \
+		-H "X-Rinha-Token: 123" \
+		-d '{"failure": $(FAILURE)}' \
+		-w "Status: %{http_code}\n" -s
+
+admin-set-fallback-failure: ## Configurar failure no processador de fallback (uso: make admin-set-fallback-failure FAILURE=true)
+	@if [ -z "$(FAILURE)" ]; then \
+		echo "❌ Erro: FAILURE é obrigatório. Use: make admin-set-fallback-failure FAILURE=true ou FAILURE=false"; \
+		exit 1; \
+	fi
+	@if [ "$(FAILURE)" != "true" ] && [ "$(FAILURE)" != "false" ]; then \
+		echo "❌ Erro: FAILURE deve ser 'true' ou 'false'. Use: make admin-set-fallback-failure FAILURE=true ou FAILURE=false"; \
+		exit 1; \
+	fi
+	@echo "⚙️  Configurando failure=$(FAILURE) no processador de fallback (porta 8002)..."
+	@curl -X PUT http://localhost:8002/admin/configurations/failure \
+		-H "Content-Type: application/json" \
+		-H "X-Rinha-Token: 123" \
+		-d '{"failure": $(FAILURE)}' \
+		-w "Status: %{http_code}\n" -s
+
 
 summary-all-test: summary-test admin-summary-test ## Executar todos os testes de summary
 	@echo "✅ Todos os testes de summary foram executados"

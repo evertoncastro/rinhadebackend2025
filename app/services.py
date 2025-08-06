@@ -3,6 +3,7 @@ from .models import PaymentRequest, PaymentProcessorRequest
 from .db import save_payment
 from .client import default_processor, fallback_processor
 from httpx import TimeoutException
+from fastapi.exceptions import HTTPException
 
 
 class PaymentService:
@@ -17,7 +18,10 @@ class PaymentService:
         try:
             processed = await default_processor.process_payment(processor_request)
             processed_by = default_processor.processor.value
-        except TimeoutException:
+        except HTTPException as e:
+            print(f"")
+            if e.status_code != 500:
+                raise e
             processed = await fallback_processor.process_payment(processor_request)
             processed_by = fallback_processor.processor.value
         internal_id = await save_payment(

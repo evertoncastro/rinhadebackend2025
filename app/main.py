@@ -33,8 +33,14 @@ async def create_payment(payment: PaymentRequest):
             status_code=400,
             detail="correlationId deve ser um UUID válido"
         )
-    await payment_service.process_payment(payment)
-    return Response(status_code=204)
+    try:
+        await payment_service.process_payment(payment)
+        return Response(status_code=204)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing payment: {str(e)}"
+        )
 
 
 @app.get("/health")
