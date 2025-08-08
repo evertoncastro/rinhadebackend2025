@@ -24,17 +24,33 @@ services:
           cpus: "0.25"
           memory: "100MB"
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    networks:
+      - rinha-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.10"
+          memory: "50MB"
+
   api-1:
     build: .
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
       - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./app:/app/app:ro
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - rinha-network
       - payment-processor
@@ -50,11 +66,14 @@ services:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
       - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./app:/app/app:ro
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - rinha-network
       - payment-processor

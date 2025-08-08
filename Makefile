@@ -5,6 +5,12 @@
 # Configurações
 COMPOSE_FILE = docker-compose.yml
 PROJECT_NAME = rinha-backend
+# Redis/Streams (valores padrão, podem ser sobrescritos: make redis-stream-latest COUNT=20)
+STREAM = payments-stream
+GROUP = payments-workers
+COUNT = 10
+FROM = -
+TO = +
 
 # Comando padrão
 help: ## Mostrar ajuda
@@ -45,6 +51,34 @@ logs-nginx: ## Mostrar logs do Nginx
 logs-apis: ## Mostrar logs das APIs (para debug interno)
 	@echo "📋 Logs das APIs (api-1 e api-2):"
 	docker-compose -f $(COMPOSE_FILE) logs -f api-1 api-2
+
+## ================================
+## Redis Streams - Consultas rápidas
+## ================================
+
+redis-stream-info: ## Mostrar informações do stream (XINFO STREAM)
+	@echo "ℹ️  XINFO STREAM $(STREAM)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XINFO STREAM $(STREAM)
+
+redis-group-info: ## Mostrar grupos do stream (XINFO GROUPS)
+	@echo "ℹ️  XINFO GROUPS $(STREAM)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XINFO GROUPS $(STREAM)
+
+redis-stream-len: ## Mostrar quantidade de mensagens no stream (XLEN)
+	@echo "🔢 XLEN $(STREAM)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XLEN $(STREAM)
+
+redis-stream-latest: ## Listar as últimas mensagens (XREVRANGE + - COUNT=$(COUNT))
+	@echo "🧾 XREVRANGE $(STREAM) + - COUNT $(COUNT)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XREVRANGE $(STREAM) + - COUNT $(COUNT)
+
+redis-stream-range: ## Listar mensagens por faixa (XRANGE FROM=$(FROM) TO=$(TO) COUNT=$(COUNT))
+	@echo "🧾 XRANGE $(STREAM) $(FROM) $(TO) COUNT $(COUNT)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XRANGE $(STREAM) $(FROM) $(TO) COUNT $(COUNT)
+
+redis-pending: ## Resumo de pendências do grupo (XPENDING GROUP=$(GROUP))
+	@echo "⏳ XPENDING $(STREAM) $(GROUP)"
+	docker-compose -f $(COMPOSE_FILE) exec -T redis redis-cli XPENDING $(STREAM) $(GROUP)
 
 status: ## Mostrar status dos containers
 	@echo "📊 Status dos containers:"

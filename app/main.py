@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from .models import PaymentRequest
 from .services import payment_service
 from .db import init_db, close_pool, get_payments_summary, purge_payments
+from .stream import ensure_stream_exists, close_redis
 
 
 app = FastAPI(
@@ -17,11 +18,13 @@ app = FastAPI(
 async def startup_event():
     """Initialize database on startup."""
     await init_db()
+    await ensure_stream_exists()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Close database connections on shutdown."""
     await close_pool()
+    await close_redis()
 
 
 @app.post("/payments", status_code=204)
