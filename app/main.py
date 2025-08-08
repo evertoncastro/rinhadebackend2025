@@ -1,10 +1,9 @@
-from fastapi import FastAPI, HTTPException, Response, Query, Header
+from fastapi import FastAPI, HTTPException, Response, Query
 from typing import Optional
 import uuid
 from datetime import datetime, timezone
 from .models import PaymentRequest
 from .services import payment_service
-from .db import init_db, close_pool, get_payments_summary, purge_payments
 from .stream import ensure_stream_exists, close_redis
 
 
@@ -16,14 +15,10 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database on startup."""
-    await init_db()
     await ensure_stream_exists()
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Close database connections on shutdown."""
-    await close_pool()
     await close_redis()
 
 
@@ -77,7 +72,16 @@ async def get_payments_summary_endpoint(
                 detail="Invalid to_datetime format. Use ISO format (e.g., 2020-07-10T12:34:56.000Z)"
             )
     try:
-        return await get_payments_summary(from_dt, to_dt)
+        return {
+            "default": {
+                "totalRequests": 0,
+                "totalAmount": 0
+            },
+            "fallback": {
+                "totalRequests": 0,
+                "totalAmount": 0
+            }
+        }
     except Exception as e:
         raise HTTPException(
             status_code=500,

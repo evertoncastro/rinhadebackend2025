@@ -1,29 +1,7 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: payments_db
-      POSTGRES_USER: payments_user
-      POSTGRES_PASSWORD: payments_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - rinha-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U payments_user -d payments_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: "0.25"
-          memory: "100MB"
-
+  
   redis:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
@@ -42,13 +20,10 @@ services:
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
-      - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./app:/app/app:ro
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
     networks:
@@ -57,7 +32,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "0.25"
           memory: "100MB"
 
   api-2:
@@ -65,13 +40,10 @@ services:
     environment:
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
-      - DATABASE_URL=postgresql://payments_user:payments_password@postgres:5432/payments_db
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./app:/app/app:ro
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_started
     networks:
@@ -80,7 +52,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
+          cpus: "0.25"
           memory: "100MB"
 
   nginx:
@@ -110,6 +82,7 @@ services:
       - WORKER_READ_BLOCK_MS=5000
       - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+      - PYTHONUNBUFFERED=1
     command: ["poetry", "run", "python", "-m", "app.worker"]
     depends_on:
       redis:
@@ -120,8 +93,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.25"
-          memory: "80MB"
+          cpus: "0.65"
+          memory: "50MB"
 
 networks:
   rinha-network:
@@ -131,5 +104,3 @@ networks:
     name: payment-processor
     external: true
 
-volumes:
-  postgres_data:

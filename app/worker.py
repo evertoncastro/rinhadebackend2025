@@ -58,7 +58,7 @@ async def _handle_messages(entries: List[Tuple[str, List[Tuple[str, Dict[str, An
                 processed = await payment_service.process_payment(processor_req)
                 if processed:
                     await redis.xack(PAYMENTS_STREAM, PAYMENTS_CONSUMER_GROUP, message_id)
-                print(f"Worker {"processed" if processed else "failed"} message {message_id}")
+                print(f"Worker {"processed" if processed else "failed"} message {message_id} on stream {stream_name}")
             except Exception as exc:
                 print(f"Worker error processing message {message_id}: {exc}")
 
