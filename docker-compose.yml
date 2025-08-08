@@ -18,6 +18,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "100MB"
 
   api-1:
     build: .
@@ -33,6 +38,11 @@ services:
     networks:
       - rinha-network
       - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "100MB"
 
   api-2:
     build: .
@@ -48,6 +58,11 @@ services:
     networks:
       - rinha-network
       - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: "100MB"
 
   nginx:
     image: nginx:alpine
@@ -60,6 +75,11 @@ services:
       - api-2
     networks:
       - rinha-network
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "50MB"
 
 networks:
   rinha-network:

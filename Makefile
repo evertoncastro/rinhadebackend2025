@@ -108,6 +108,8 @@ admin-purge-payments: ## Testar endpoint de purge nos processadores externos
 	@curl -X POST http://localhost:8002/admin/purge-payments \
 		-H "X-Rinha-Token: 123" -w "Status: %{http_code}\n" -s
 
+purge-all: purge-payments admin-purge-payments
+
 admin-set-default-delay: ## Configurar delay no processador padrão (uso: make admin-set-default-delay DELAY=1000)
 	@if [ -z "$(DELAY)" ]; then \
 		echo "❌ Erro: DELAY é obrigatório. Use: make admin-set-default-delay DELAY=1000"; \
