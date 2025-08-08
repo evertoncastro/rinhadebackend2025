@@ -29,17 +29,13 @@ async def close_redis() -> None:
 
 async def ensure_stream_exists(group_name: Optional[str] = PAYMENTS_CONSUMER_GROUP) -> None:
     redis = await get_redis()
-    # Ensure stream exists and optionally ensure a consumer group exists
     if group_name:
         try:
-            # Create group at end ($), create stream if missing
             await redis.xgroup_create(name=PAYMENTS_STREAM, groupname=group_name, id="$", mkstream=True)
         except ResponseError as exc:
-            # BUSYGROUP means group already exists; ignore
             if "BUSYGROUP" not in str(exc):
                 raise
     else:
-        # If no group management, at least ensure the stream exists using XADD with a dummy field removed immediately
         await redis.xadd(PAYMENTS_STREAM, {"init": "1"})
 
 
@@ -47,5 +43,3 @@ async def append_payment_to_stream(payload: Dict[str, Any]) -> str:
     redis = await get_redis()
     message_id = await redis.xadd(PAYMENTS_STREAM, {"data": json.dumps(payload)})
     return str(message_id)
-
-

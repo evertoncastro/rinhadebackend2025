@@ -37,7 +37,7 @@ async def create_payment(payment: PaymentRequest):
             detail="correlationId deve ser um UUID válido"
         )
     try:
-        await payment_service.process_payment(payment)
+        await payment_service.receive_payment(payment)
         return Response(status_code=204)
     except Exception as e:
         raise HTTPException(

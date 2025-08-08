@@ -100,6 +100,29 @@ services:
           cpus: "0.25"
           memory: "50MB"
 
+  worker:
+    build: .
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - PAYMENTS_STREAM=payments-stream
+      - PAYMENTS_CONSUMER_GROUP=payments-workers
+      - WORKER_READ_COUNT=10
+      - WORKER_READ_BLOCK_MS=5000
+      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
+      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
+    command: ["poetry", "run", "python", "-m", "app.worker"]
+    depends_on:
+      redis:
+        condition: service_started
+    networks:
+      - rinha-network
+      - payment-processor
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: "80MB"
+
 networks:
   rinha-network:
     name: rinha-network

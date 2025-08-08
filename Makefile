@@ -32,6 +32,14 @@ down: ## Parar os containers
 
 restart: down up ## Reiniciar a aplicação
 
+dev: ## Executar aplicação local em modo desenvolvimento
+	@echo "🚀 Executando aplicação local na porta 8080..."
+	poetry run python app/main.py
+
+dev-docker: ## Executar aplicação Docker com hot reload
+	@echo "🚀 Executando aplicação Docker com hot reload..."
+	docker-compose -f $(COMPOSE_FILE) up --build --detach
+
 logs: ## Mostrar logs dos containers
 	@echo "📋 Logs da aplicação:"
 	docker-compose -f $(COMPOSE_FILE) logs -f
@@ -51,6 +59,10 @@ logs-nginx: ## Mostrar logs do Nginx
 logs-apis: ## Mostrar logs das APIs (para debug interno)
 	@echo "📋 Logs das APIs (api-1 e api-2):"
 	docker-compose -f $(COMPOSE_FILE) logs -f api-1 api-2
+
+logs-worker: ## Mostrar logs do worker
+	@echo "📋 Logs do worker:"
+	docker-compose -f $(COMPOSE_FILE) logs -f worker
 
 ## ================================
 ## Redis Streams - Consultas rápidas
@@ -205,11 +217,3 @@ summary-all-test: summary-test admin-summary-test ## Executar todos os testes de
 	@echo "✅ Todos os testes de summary foram executados"
 
 
-dev: ## Executar aplicação local em modo desenvolvimento
-	@echo "🚀 Executando aplicação local na porta 8080..."
-	poetry run python app/main.py
-
-
-dev-docker: ## Executar aplicação Docker com hot reload
-	@echo "🚀 Executando aplicação Docker com hot reload..."
-	docker-compose -f $(COMPOSE_FILE) up --build 
