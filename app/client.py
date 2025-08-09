@@ -2,8 +2,6 @@ import httpx
 import os
 from enum import Enum
 from fastapi import HTTPException
-from .models import PaymentProcessorRequest
-
 
 class Processor(Enum):
     DEFAULT = "default"
@@ -18,20 +16,33 @@ class ProcessorAPIClient:
     def __init__(self, processor: Processor = Processor.DEFAULT):
         self.url = DEFAULT_URL if processor == Processor.DEFAULT else FALLBACK_URL
         self.processor = processor
-        self.timeout = None
+        connect_timeout = float(os.getenv("HTTPX_CONNECT_TIMEOUT", "1.0"))
+        read_timeout = float(os.getenv("HTTPX_READ_TIMEOUT", "5.0"))
+        write_timeout = float(os.getenv("HTTPX_WRITE_TIMEOUT", "5.0"))
+        pool_timeout = float(os.getenv("HTTPX_POOL_TIMEOUT", "5.0"))
+        max_connections = int(os.getenv("HTTPX_MAX_CONNECTIONS", "200"))
+        max_keepalive = int(os.getenv("HTTPX_MAX_KEEPALIVE", "50"))
+        self.timeout = httpx.Timeout(
+            connect=connect_timeout,
+            read=read_timeout,
+            write=write_timeout,
+            pool=pool_timeout,
+        )
+        self.limits = httpx.Limits(
+            max_connections=max_connections,
+            max_keepalive_connections=max_keepalive,
+        )
+        self.client = httpx.AsyncClient(timeout=self.timeout, limits=self.limits)
 
-    async def process_payment(self, processor_request: PaymentProcessorRequest) -> bool:
+    async def process_payment(self, payment_data: dict) -> bool:
         try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(
-                    f"{self.url}/payments",
-                    json=processor_request.model_dump(),
-                    headers={"Content-Type": "application/json"},
-                    timeout=httpx.Timeout(self.timeout)
-                )
-                response.raise_for_status()
-                print(f"Payment processor ({self.processor}) successful response: {response.json()}")
-                return True
+            response = await self.client.post(
+                f"{self.url}/payments",
+                json=payment_data,
+                headers={"Content-Type": "application/json"},
+            )
+            response.raise_for_status()
+            return True
         except httpx.TimeoutException:
             print(f"Payment processor ({self.processor}) timeout")
             raise
@@ -50,6 +61,12 @@ class ProcessorAPIClient:
                 status_code=500,
                 detail=f"Payment processor ({self.processor}) connection error: {e}"
             )
+
+    async def aclose(self) -> None:
+        try:
+            await self.client.aclose()
+        except Exception:
+            pass
 
 default_processor = ProcessorAPIClient(Processor.DEFAULT) 
 fallback_processor = ProcessorAPIClient(Processor.FALLBACK)

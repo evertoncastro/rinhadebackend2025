@@ -9,6 +9,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 PAYMENTS_STREAM = os.getenv("PAYMENTS_STREAM", "payments-stream")
 PAYMENTS_CONSUMER_GROUP = os.getenv("PAYMENTS_CONSUMER_GROUP", "payments-workers")
 PAYMENTS_STREAM_MAXLEN = int(os.getenv("PAYMENTS_STREAM_MAXLEN", "0"))
+REDIS_MAX_CONNECTIONS = int(os.getenv("REDIS_MAX_CONNECTIONS", "100"))
 
 _redis_client: Optional[Redis] = None
 
@@ -16,7 +17,7 @@ _redis_client: Optional[Redis] = None
 async def get_redis() -> Redis:
     global _redis_client
     if _redis_client is None:
-        _redis_client = Redis.from_url(REDIS_URL, decode_responses=True)
+        _redis_client = Redis.from_url(REDIS_URL, decode_responses=False, max_connections=REDIS_MAX_CONNECTIONS)
     assert _redis_client is not None
     return _redis_client
 
@@ -45,5 +46,5 @@ async def append_payment_to_stream(payload: Dict[str, Any]) -> str:
     kwargs: Dict[str, Any] = {}
     if PAYMENTS_STREAM_MAXLEN > 0:
         kwargs.update({"maxlen": PAYMENTS_STREAM_MAXLEN, "approximate": True})
-    message_id = await redis.xadd(PAYMENTS_STREAM, {"data": orjson.dumps(payload)}, **kwargs)
+    message_id = await redis.xadd(PAYMENTS_STREAM, {b"data": orjson.dumps(payload)}, **kwargs)
     return str(message_id)

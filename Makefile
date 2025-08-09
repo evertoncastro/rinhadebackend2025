@@ -28,9 +28,11 @@ up: ## Subir os containers
 
 down: ## Parar os containers
 	@echo "🛑 Parando aplicação..."
-	docker-compose -f $(COMPOSE_FILE) down
+	docker-compose -f $(COMPOSE_FILE) down -v
 
 restart: down up ## Reiniciar a aplicação
+
+rebuild: down build up ## Reconstruir a aplicação
 
 dev: ## Executar aplicação local em modo desenvolvimento
 	@echo "🚀 Executando aplicação local na porta 8080..."
