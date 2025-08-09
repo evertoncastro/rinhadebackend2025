@@ -26,5 +26,4 @@ COPY app/ ./app/
 # Expor porta da aplicação
 EXPOSE 8080
 
-# Comando para iniciar a aplicação em produção via Uvicorn (sem reload)
-CMD ["poetry", "run", "uvicorn", "app.main:app","--workers", "1", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["poetry", "run", "uvicorn", "app.main:app","--workers", "1", "--loop", "uvloop", "--http", "httptools", "--host", "0.0.0.0", "--port", "8080"]

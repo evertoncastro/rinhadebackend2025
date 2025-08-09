@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from .models import PaymentRequest, PaymentProcessorRequest
+from .models import PaymentProcessorRequest
 from .stream import append_payment_to_stream
 from .client import default_processor, fallback_processor
 from fastapi.exceptions import HTTPException
@@ -7,22 +7,14 @@ from fastapi.exceptions import HTTPException
 
 class PaymentService:
 
-    async def receive_payment(self, payment: PaymentRequest) -> bool:
+    async def receive_payment(self, payment: dict) -> bool:
         requested_at = datetime.now(timezone.utc)
-        processor_request = PaymentProcessorRequest(
-            correlationId=payment.correlationId,
-            amount=str(payment.amount),
-            requestedAt=requested_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-        )
+        payment["requestedAt"] = requested_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         try:
-            message_id = await append_payment_to_stream({
-                "correlationId": payment.correlationId,
-                "amount": str(payment.amount),
-                "requestedAt": processor_request.requestedAt
-            })
+            message_id = await append_payment_to_stream(payload=payment)
             print(f"Payment enqueued to stream with message ID: {message_id}")
         except Exception as e:
-            print(f"Failed to enqueue payment to stream: {e}")
+            raise Exception(f"Failed to enqueue payment to stream: {e}")
         return True
 
     async def process_payment(self, payment_processor_req: PaymentProcessorRequest) -> bool:

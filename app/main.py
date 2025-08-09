@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException, Response, Query
 from typing import Optional
-import uuid
 from datetime import datetime, timezone
-from .models import PaymentRequest
 from .services import payment_service
 from .stream import ensure_stream_exists, close_redis
 
@@ -23,14 +21,7 @@ async def shutdown_event():
 
 
 @app.post("/payments", status_code=204)
-async def create_payment(payment: PaymentRequest):
-    try:
-        uuid.UUID(payment.correlationId)
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail="correlationId deve ser um UUID válido"
-        )
+async def create_payment(payment: dict):
     try:
         await payment_service.receive_payment(payment)
         return Response(status_code=204)
