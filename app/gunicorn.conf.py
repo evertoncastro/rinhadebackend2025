@@ -6,15 +6,15 @@ import os
 
 # Configuração do servidor
 bind = "0.0.0.0:8080"
-workers = multiprocessing.cpu_count() * 2 + 1
+workers = 1  # ambiente restrito de CPU; um worker por container
 worker_class = "uvicorn.workers.UvicornWorker"
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
+worker_connections = 2048
+max_requests = 5000
+max_requests_jitter = 500
 
 # Configurações de timeout
-timeout = 30
-keepalive = 2
+timeout = 15
+keepalive = 10
 
 # Configurações de performance
 preload_app = True

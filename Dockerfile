@@ -26,5 +26,5 @@ COPY app/ ./app/
 # Expor porta da aplicação
 EXPOSE 8080
 
-# Comando para iniciar a aplicação (poetry run encontra o ambiente virtual)
-CMD ["poetry", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"] 
+# Comando para iniciar a aplicação em produção via Gunicorn (sem reload)
+CMD ["poetry", "run", "gunicorn", "-c", "app/gunicorn.conf.py", "app.main:app"]

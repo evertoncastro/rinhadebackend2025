@@ -8,6 +8,7 @@ from redis.exceptions import ResponseError
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 PAYMENTS_STREAM = os.getenv("PAYMENTS_STREAM", "payments-stream")
 PAYMENTS_CONSUMER_GROUP = os.getenv("PAYMENTS_CONSUMER_GROUP", "payments-workers")
+PAYMENTS_STREAM_MAXLEN = int(os.getenv("PAYMENTS_STREAM_MAXLEN", "10000"))
 
 _redis_client: Optional[Redis] = None
 
@@ -41,5 +42,11 @@ async def ensure_stream_exists(group_name: Optional[str] = PAYMENTS_CONSUMER_GRO
 
 async def append_payment_to_stream(payload: Dict[str, Any]) -> str:
     redis = await get_redis()
-    message_id = await redis.xadd(PAYMENTS_STREAM, {"data": json.dumps(payload)})
+    # aplica política de tamanho máximo aproximado para proteger memória do Redis
+    message_id = await redis.xadd(
+        PAYMENTS_STREAM,
+        {"data": json.dumps(payload)},
+        maxlen=PAYMENTS_STREAM_MAXLEN,
+        approximate=True,
+    )
     return str(message_id)
