@@ -129,15 +129,15 @@ payment-test: ## Testar endpoints de pagamento via Load Balancer (uso: make paym
 
 summary-test:
 	@echo "📊 Testando GET /payments-summary via Load Balancer..."
-	@curl -s "http://localhost:9999/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.999Z" | jq '.' || echo "❌ Erro na consulta"
+	@curl -s "http://localhost:9999/payments-summary?from=2025-08-10T01:48:47.330Z&to=2025-08-10T01:48:57.230Z" | jq '.' || echo "❌ Erro na consulta"
 
 
 admin-summary-test: ## Testar endpoint /admin/payments-summary nos processadores externos
 	@echo "📊 Testando processador padrão"
-	@curl -s "http://localhost:8001/admin/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.000Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador padrão não está respondendo"
+	@curl -s "http://localhost:8001/admin/payments-summary?from=2025-08-10T01:48:47.330Z&to=2025-08-10T01:48:57.230Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador padrão não está respondendo"
 	@echo ""
 	@echo "📊 Testando processador de fallback"
-	@curl -s "http://localhost:8002/admin/payments-summary?from=2025-08-01T00:00:00.000Z&to=2025-08-31T23:59:59.000Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador de fallback não está respondendo"
+	@curl -s "http://localhost:8002/admin/payments-summary?from=2025-08-10T01:48:47.330Z&to=2025-08-10T01:48:57.230Z" --header 'X-Rinha-Token: 123' | jq '.' || echo "❌ Processador de fallback não está respondendo"
 
 purge-payments: ## Testar endpoint de purge via Load Balancer
 	@echo "🧪 Testando POST /purge-payments via Load Balancer..."

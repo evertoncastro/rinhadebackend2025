@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-from .models import PaymentProcessorRequest
 from .stream import append_payment_to_stream
 from .client import default_processor, fallback_processor
 from fastapi.exceptions import HTTPException
+from .agg import incr_agg
 
 
 class PaymentService:
@@ -17,14 +17,17 @@ class PaymentService:
     async def process_payment(self, payment_data: dict) -> bool:
         requested_at = datetime.now(timezone.utc)
         payment_data["requestedAt"] = requested_at.isoformat(timespec="milliseconds").replace("+00:00", "Z")
+        processed_by = "default"
         try:
             processed = await default_processor.process_payment(payment_data)
-            # processed_by = default_processor.processor.value
+            processed_by = "default"
         except HTTPException as e:
             if e.status_code != 500:
                 raise e
             processed = await fallback_processor.process_payment(payment_data)
-            # processed_by = fallback_processor.processor.value
+            processed_by = "fallback"
+        if processed:
+            await incr_agg(processed_by, payment_data["amount"], requested_at)
         return processed
 
 payment_service = PaymentService()
