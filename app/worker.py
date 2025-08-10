@@ -15,9 +15,9 @@ from .services import payment_service
 
 
 CONSUMER_NAME = os.getenv("WORKER_CONSUMER_NAME") or socket.gethostname()
-READ_COUNT = int(os.getenv("WORKER_READ_COUNT", "64"))
+READ_COUNT = int(os.getenv("WORKER_READ_COUNT", "128"))
 READ_BLOCK_MS = int(os.getenv("WORKER_READ_BLOCK_MS", "2000"))
-CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "64"))
+CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "128"))
 
 
 def _setup_signals(loop: asyncio.AbstractEventLoop) -> None:
