@@ -5,7 +5,7 @@ from decimal import Decimal
 import os
 from .services import payment_service
 from .stream import ensure_stream_exists, close_redis
-from .agg import summarize
+from .zstore import summarize_range
 
 
 app = FastAPI(
@@ -54,20 +54,7 @@ async def get_payments_summary_endpoint(
     to_dt = datetime.fromisoformat(to_datetime.replace('Z', '+00:00')).astimezone(timezone.utc)
     
     try:
-        raw = await summarize(from_dt, to_dt)
-        scale = int(os.getenv("AGG_SCALE", "1000000"))
-        def to_number(units: int) -> float:
-            return float(Decimal(units) / Decimal(scale))
-        return {
-            "default": {
-                "totalRequests": raw["default"]["totalRequests"],
-                "totalAmount": to_number(raw["default"]["totalAmount"]) 
-            },
-            "fallback": {
-                "totalRequests": raw["fallback"]["totalRequests"],
-                "totalAmount": to_number(raw["fallback"]["totalAmount"]) 
-            }
-        }
+        return await summarize_range(from_dt, to_dt)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving payment summary: {str(e)}")
 

@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from .stream import append_payment_to_stream
 from .client import default_processor, fallback_processor
 from fastapi.exceptions import HTTPException
-from .agg import incr_agg
+from .zstore import add_processed
 
 
 class PaymentService:
@@ -27,7 +27,7 @@ class PaymentService:
             processed = await fallback_processor.process_payment(payment_data)
             processed_by = "fallback"
         if processed:
-            await incr_agg(processed_by, payment_data["amount"], requested_at)
+            await add_processed(processed_by, payment_data["amount"], requested_at, payment_data.get("correlationId"))
         return processed
 
 payment_service = PaymentService()
