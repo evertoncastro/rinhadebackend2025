@@ -22,6 +22,11 @@ services:
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_URL=redis://redis:6379/0
       - PAYMENTS_STREAM_MAXLEN=0
+      - EMBED_WORKER=true
+      - WORKER_READ_COUNT=64
+      - WORKER_READ_BLOCK_MS=2000
+      - WORKER_CONCURRENCY=48
+      - WORKER_CONSUMER_NAME=api-1
     depends_on:
       redis:
         condition: service_started
@@ -31,8 +36,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.35"
-          memory: "100MB"
+          cpus: "0.65"
+          memory: "140MB"
 
   api-2:
     build: .
@@ -41,6 +46,11 @@ services:
       - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
       - REDIS_URL=redis://redis:6379/0
       - PAYMENTS_STREAM_MAXLEN=0
+      - EMBED_WORKER=true
+      - WORKER_READ_COUNT=64
+      - WORKER_READ_BLOCK_MS=2000
+      - WORKER_CONCURRENCY=48
+      - WORKER_CONSUMER_NAME=api-2
     depends_on:
       redis:
         condition: service_started
@@ -50,8 +60,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.35"
-          memory: "100MB"
+          cpus: "0.65"
+          memory: "140MB"
 
   nginx:
     image: nginx:alpine
@@ -67,33 +77,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.15"
-          memory: "50MB"
-
-  worker:
-    build: .
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-      - PAYMENTS_STREAM=payments-stream
-      - PAYMENTS_CONSUMER_GROUP=payments-workers
-      - PAYMENTS_STREAM_MAXLEN=0
-      - WORKER_READ_COUNT=10
-      - WORKER_READ_BLOCK_MS=5000
-      - PROCESSOR_DEFAULT_URL=http://payment-processor-default:8080
-      - PROCESSOR_FALLBACK_URL=http://payment-processor-fallback:8080
-      - PYTHONUNBUFFERED=1
-    command: ["poetry", "run", "python", "-m", "app.worker"]
-    depends_on:
-      redis:
-        condition: service_started
-    networks:
-      - rinha-network
-      - payment-processor
-    deploy:
-      resources:
-        limits:
-          cpus: "0.55"
-          memory: "50MB"
+          cpus: "0.10"
+          memory: "20MB"
 
 networks:
   rinha-network:

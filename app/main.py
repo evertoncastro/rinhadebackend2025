@@ -6,6 +6,7 @@ import os
 from .services import payment_service
 from .stream import ensure_stream_exists, close_redis
 from .zstore import summarize_range
+from .worker import start_in_current_loop, stop_worker
 
 
 app = FastAPI(
@@ -14,13 +15,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
+_embed_worker = os.getenv("EMBED_WORKER", "false").lower() == "true"
+
 @app.on_event("startup")
 async def startup_event():
     await ensure_stream_exists()
+    if _embed_worker:
+        start_in_current_loop()
 
 @app.on_event("shutdown")
 async def shutdown_event():
     await close_redis()
+    if _embed_worker:
+        await stop_worker()
 
 
 @app.post("/payments", status_code=204)
