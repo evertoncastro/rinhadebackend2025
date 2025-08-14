@@ -4,7 +4,7 @@ services:
   
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "50mb", "--maxmemory-policy", "noeviction"]
+    command: ["redis-server", "--appendonly", "no", "--maxmemory", "50mb", "--maxmemory-policy", "allkeys-lru", "--tcp-backlog", "511", "--timeout", "0", "--tcp-keepalive", "300", "--save", "", "--io-threads", "2"]
     ports:
       - "6379:6379"
     networks:

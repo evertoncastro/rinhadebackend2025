@@ -26,4 +26,5 @@ COPY app/ ./app/
 # Expor porta da aplicação
 EXPOSE 8080
 
-CMD ["poetry", "run", "uvicorn", "app.main:app","--workers", "1", "--loop", "uvloop", "--http", "httptools", "--host", "0.0.0.0", "--port", "8080"]
+# Usar uvicorn otimizado por padrão
+CMD ["poetry", "run", "uvicorn", "app.main:app", "--workers", "1", "--loop", "uvloop", "--http", "httptools", "--host", "0.0.0.0", "--port", "8080", "--backlog", "4096", "--no-access-log"]

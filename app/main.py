@@ -32,14 +32,8 @@ async def shutdown_event():
 
 @app.post("/payments", status_code=204)
 async def create_payment(payment: dict):
-    try:
-        await payment_service.receive_payment(payment)
-        return Response(status_code=204)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error processing payment: {str(e)}"
-        )
+    await payment_service.receive_payment(payment)
+    return
 
 
 @app.get("/health")

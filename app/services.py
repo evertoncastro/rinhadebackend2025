@@ -7,12 +7,8 @@ from .zstore import add_processed
 
 class PaymentService:
 
-    async def receive_payment(self, payment: dict) -> bool:
-        try:
-            await append_payment_to_stream(payload=payment)
-        except Exception as e:
-            raise Exception(f"Failed to enqueue payment to stream: {e}")
-        return True
+    async def receive_payment(self, payment: dict) -> None:
+        await append_payment_to_stream(payload=payment)
 
     async def process_payment(self, payment_data: dict) -> bool:
         requested_at = datetime.now(timezone.utc)
