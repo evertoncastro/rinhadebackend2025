@@ -25,6 +25,7 @@ CONSUMER_NAME = os.getenv("WORKER_CONSUMER_NAME") or socket.gethostname()
 READ_COUNT = int(os.getenv("WORKER_READ_COUNT", "128"))
 READ_BLOCK_MS = int(os.getenv("WORKER_READ_BLOCK_MS", "2000"))
 CONCURRENCY = int(os.getenv("WORKER_CONCURRENCY", "128"))
+PENDING_TIMEOUT_MS = int(os.getenv("WORKER_PENDING_TIMEOUT_MS", "30000"))  # 30s para reclaim
 
 logger.info(f"Worker starting with CONSUMER_NAME={CONSUMER_NAME}, READ_COUNT={READ_COUNT}, CONCURRENCY={CONCURRENCY}")
 
@@ -46,6 +47,50 @@ _worker_task: Optional[asyncio.Task] = None
 async def _stop() -> None:
     logger.info("Shutdown signal received")
     _shutdown_event.set()
+
+
+async def _reclaim_pending_messages(redis) -> None:
+    """
+    Reclama mensagens pending que ficaram órfãs por muito tempo
+    Isso garante que mensagens que retornaram False sejam reprocessadas
+    """
+    try:
+        # Busca mensagens pending há mais de PENDING_TIMEOUT_MS
+        pending_info = await redis.xpending(
+            PAYMENTS_STREAM, 
+            PAYMENTS_CONSUMER_GROUP,
+            count=10  # Processa até 10 mensagens pending por vez
+        )
+        
+        if pending_info and len(pending_info) > 0:
+            logger.info(f"Found {len(pending_info)} pending messages to check")
+            
+            for pending in pending_info:
+                message_id = pending[0]
+                consumer = pending[1]
+                idle_time = pending[2]
+                
+                # Se a mensagem está pending há mais tempo que o timeout
+                if idle_time > PENDING_TIMEOUT_MS:
+                    logger.info(f"Reclaiming pending message {message_id} from {consumer} (idle: {idle_time}ms)")
+                    
+                    # Reclama a mensagem para este consumer
+                    claimed = await redis.xclaim(
+                        PAYMENTS_STREAM,
+                        PAYMENTS_CONSUMER_GROUP,
+                        CONSUMER_NAME,
+                        min_idle_time=PENDING_TIMEOUT_MS,
+                        message_ids=[message_id]
+                    )
+                    
+                    if claimed:
+                        logger.info(f"Successfully claimed message {message_id}")
+                        # Processa as mensagens reclamadas
+                        entries = [(PAYMENTS_STREAM, claimed)]
+                        await _handle_messages(entries)
+                        
+    except Exception as exc:
+        logger.error(f"Error reclaiming pending messages: {exc}")
 
 
 async def _handle_messages(entries: List[Tuple[str, List[Tuple[str, Dict[str, Any]]]]]) -> None:
@@ -96,8 +141,13 @@ async def run_worker() -> None:
             f"Worker started consumer={CONSUMER_NAME} group={PAYMENTS_CONSUMER_GROUP} stream={PAYMENTS_STREAM}"
         )
         
+        loop_count = 0
         while not _shutdown_event.is_set():
             try:
+                # A cada 10 loops, verifica mensagens pending (não bloqueia muito)
+                if loop_count % 10 == 0:
+                    await _reclaim_pending_messages(redis)
+                
                 entries = await redis.xreadgroup(
                     groupname=PAYMENTS_CONSUMER_GROUP,
                     consumername=CONSUMER_NAME,
@@ -106,6 +156,8 @@ async def run_worker() -> None:
                     block=READ_BLOCK_MS,
                 )
                 await _handle_messages(entries)
+                loop_count += 1
+                
             except Exception as exc:
                 logger.error(f"Worker loop error: {exc}", exc_info=True)
                 await asyncio.sleep(1)
